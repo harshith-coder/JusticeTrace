@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./actionItem";
+export * from "./appealInfo";
+export * from "./caseOutcome";
 export * from "./document";
 export * from "./documentAnalysis";
 export * from "./documentStats";
@@ -17,5 +20,10 @@ export * from "./extractedDirective";
 export * from "./extractedParty";
 export * from "./healthStatus";
 export * from "./highlightedSection";
+export * from "./keyDate";
+export * from "./legalCitation";
+export * from "./legalIssue";
 export * from "./listDocumentsParams";
 export * from "./listDocumentsStatus";
+export * from "./monetaryAward";
+export * from "./proceduralStep";

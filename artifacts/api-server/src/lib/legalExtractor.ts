@@ -21,6 +21,62 @@ export interface HighlightedSection {
   category: string;
 }
 
+export interface LegalCitation {
+  text: string;
+  type: string;
+  confidence: number;
+}
+
+export interface KeyDate {
+  event: string;
+  date: string;
+  confidence: number;
+}
+
+export interface MonetaryAward {
+  type: string;
+  amount: string;
+  recipient: string;
+  payer: string;
+  confidence: number;
+}
+
+export interface LegalIssue {
+  issue: string;
+  resolution: string;
+  confidence: number;
+}
+
+export interface CaseOutcome {
+  prevailingParty: string | null;
+  outcomeType: string | null;
+  summary: string | null;
+  confidence: number;
+}
+
+export interface AppealInfo {
+  canAppeal: boolean | null;
+  deadline: string | null;
+  court: string | null;
+  notes: string | null;
+  confidence: number;
+}
+
+export interface ActionItem {
+  action: string;
+  responsible: string;
+  deadline: string | null;
+  priority: string;
+  confidence: number;
+}
+
+export interface ProceduralStep {
+  event: string;
+  date: string | null;
+  court: string | null;
+  confidence: number;
+}
+
 export interface LegalExtractionResult {
   caseNumber: string | null;
   caseNumberConfidence: number | null;
@@ -28,6 +84,8 @@ export interface LegalExtractionResult {
   caseNameConfidence: number | null;
   courtName: string | null;
   courtNameConfidence: number | null;
+  jurisdiction: string | null;
+  jurisdictionConfidence: number | null;
   judgmentDate: string | null;
   judgmentDateConfidence: number | null;
   judge: string | null;
@@ -35,62 +93,134 @@ export interface LegalExtractionResult {
   parties: ExtractedParty[];
   directives: ExtractedDirective[];
   highlights: HighlightedSection[];
+  legalCitations: LegalCitation[];
+  keyDates: KeyDate[];
+  monetaryAwards: MonetaryAward[];
+  legalIssues: LegalIssue[];
+  proceduralHistory: ProceduralStep[];
+  outcome: CaseOutcome | null;
+  appealInfo: AppealInfo | null;
+  actionItems: ActionItem[];
   summary: string | null;
   overallConfidence: number | null;
 }
 
-const SYSTEM_PROMPT = `You are a specialized legal document analysis AI. Your task is to extract structured information from court judgment documents.
+const SYSTEM_PROMPT = `You are a specialized legal document analysis AI. Extract comprehensive structured information from court judgment documents with maximum detail and precision.
 
-Extract the following information with high precision:
-1. Case number/reference number
-2. Case name (typically "Plaintiff v. Defendant")
-3. Court name
-4. Judgment date
-5. Presiding judge(s)
-6. All parties involved with their roles (Plaintiff, Defendant, Appellant, Respondent, Intervenor, etc.)
-7. Key directives/orders issued by the court
-8. Important highlighted sections (with categories like "holding", "reasoning", "procedural_history", "facts", "legal_standard", "remedy")
-9. A brief executive summary
+Extract ALL of the following categories. Provide a confidence score (0.0–1.0) for every field.
 
-For each piece of extracted information, provide a confidence score between 0.0 and 1.0 based on how certain you are about the extraction.
-
-Always respond with valid JSON in exactly this structure:
+Always respond with valid JSON matching this exact structure:
 {
   "caseNumber": "string or null",
-  "caseNumberConfidence": number between 0 and 1,
+  "caseNumberConfidence": 0.0-1.0,
   "caseName": "string or null",
-  "caseNameConfidence": number between 0 and 1,
-  "courtName": "string or null",
-  "courtNameConfidence": number between 0 and 1,
+  "caseNameConfidence": 0.0-1.0,
+  "courtName": "full court name or null",
+  "courtNameConfidence": 0.0-1.0,
+  "jurisdiction": "e.g. Federal, State - California, International, etc. or null",
+  "jurisdictionConfidence": 0.0-1.0,
   "judgmentDate": "ISO date string or null",
-  "judgmentDateConfidence": number between 0 and 1,
-  "judge": "string or null",
-  "judgeConfidence": number between 0 and 1,
+  "judgmentDateConfidence": 0.0-1.0,
+  "judge": "full name(s) of presiding judge(s) or null",
+  "judgeConfidence": 0.0-1.0,
+
   "parties": [
-    { "role": "string", "name": "string", "confidence": number }
+    { "role": "Plaintiff|Defendant|Appellant|Respondent|Petitioner|Intervenor|etc.", "name": "full name", "confidence": 0.0-1.0 }
   ],
+
   "directives": [
     {
-      "type": "string (e.g. ORDER, INJUNCTION, AWARD, DISMISSAL)",
-      "description": "string describing the directive",
-      "sourceText": "verbatim text from document",
-      "confidence": number
+      "type": "ORDER|INJUNCTION|AWARD|DISMISSAL|REMAND|DECLARATION|STAY|WRIT|SENTENCE|other",
+      "description": "clear description of the directive",
+      "sourceText": "verbatim excerpt from the document (max 300 chars)",
+      "confidence": 0.0-1.0
     }
   ],
+
   "highlights": [
     {
-      "label": "string",
-      "text": "relevant excerpt from document",
-      "confidence": number,
+      "label": "short label",
+      "text": "relevant excerpt from the document",
+      "confidence": 0.0-1.0,
       "category": "holding|reasoning|procedural_history|facts|legal_standard|remedy"
     }
   ],
-  "summary": "string - 2-4 sentence executive summary",
-  "overallConfidence": number between 0 and 1
-}`;
+
+  "legalCitations": [
+    {
+      "text": "full citation text e.g. Brown v. Board of Education, 347 U.S. 483 (1954)",
+      "type": "case_law|statute|regulation|constitutional|treaty|other",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "keyDates": [
+    {
+      "event": "description of the event e.g. 'Complaint filed', 'Hearing held', 'Judgment issued', 'Appeal deadline'",
+      "date": "ISO date string or descriptive string like '30 days from judgment'",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "monetaryAwards": [
+    {
+      "type": "damages|costs|attorney_fees|fine|restitution|compensation|other",
+      "amount": "exact amount with currency e.g. '$150,000' or '€50,000'",
+      "recipient": "party receiving the payment",
+      "payer": "party ordered to pay",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "legalIssues": [
+    {
+      "issue": "the legal question or issue before the court",
+      "resolution": "how the court resolved it",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "proceduralHistory": [
+    {
+      "event": "what happened procedurally e.g. 'Case filed in District Court', 'Appeal to Circuit Court', 'Remanded for retrial'",
+      "date": "ISO date or descriptive string or null",
+      "court": "court name or null",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "outcome": {
+    "prevailingParty": "name of the winning party or 'Mixed' or null",
+    "outcomeType": "Judgment for Plaintiff|Judgment for Defendant|Dismissed|Remanded|Settled|Affirmed|Reversed|Mixed|other",
+    "summary": "1-2 sentence plain-English outcome summary",
+    "confidence": 0.0-1.0
+  },
+
+  "appealInfo": {
+    "canAppeal": true|false|null,
+    "deadline": "deadline string or null",
+    "court": "appellate court to appeal to or null",
+    "notes": "any relevant notes about appeal rights or null",
+    "confidence": 0.0-1.0
+  },
+
+  "actionItems": [
+    {
+      "action": "specific action that must be taken",
+      "responsible": "which party or entity must take the action",
+      "deadline": "deadline string or null",
+      "priority": "high|medium|low",
+      "confidence": 0.0-1.0
+    }
+  ],
+
+  "summary": "3-5 sentence executive summary of the entire judgment",
+  "overallConfidence": 0.0-1.0
+}
+
+Be thorough — extract as many citations, dates, issues, and action items as you can find. If information is genuinely absent from the document, use empty arrays or null values. Never fabricate information.`;
 
 export async function extractLegalInformation(documentText: string): Promise<LegalExtractionResult> {
-  // Allow up to ~300 pages worth of text (~250,000 chars). Claude's context window supports this.
   const MAX_CHARS = 250000;
   const truncatedText = documentText.length > MAX_CHARS
     ? documentText.slice(0, MAX_CHARS) + "\n\n[Document truncated — remaining pages not included]"
@@ -105,7 +235,7 @@ export async function extractLegalInformation(documentText: string): Promise<Leg
     messages: [
       {
         role: "user",
-        content: `Please analyze the following court judgment document and extract the requested structured information:\n\n${truncatedText}`,
+        content: `Analyze the following court judgment document and extract all requested information:\n\n${truncatedText}`,
       },
     ],
   });

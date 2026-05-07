@@ -65,6 +65,72 @@ export interface HighlightedSection {
   category: string;
 }
 
+export interface LegalCitation {
+  text: string;
+  type: string;
+  confidence: number;
+}
+
+export interface KeyDate {
+  event: string;
+  date: string;
+  confidence: number;
+}
+
+export interface MonetaryAward {
+  type: string;
+  amount: string;
+  recipient: string;
+  payer: string;
+  confidence: number;
+}
+
+export interface LegalIssue {
+  issue: string;
+  resolution: string;
+  confidence: number;
+}
+
+export interface CaseOutcome {
+  /** @nullable */
+  prevailingParty: string | null;
+  /** @nullable */
+  outcomeType: string | null;
+  /** @nullable */
+  summary: string | null;
+  confidence: number;
+}
+
+export interface AppealInfo {
+  /** @nullable */
+  canAppeal: boolean | null;
+  /** @nullable */
+  deadline: string | null;
+  /** @nullable */
+  court: string | null;
+  /** @nullable */
+  notes: string | null;
+  confidence: number;
+}
+
+export interface ActionItem {
+  action: string;
+  responsible: string;
+  /** @nullable */
+  deadline: string | null;
+  priority: string;
+  confidence: number;
+}
+
+export interface ProceduralStep {
+  event: string;
+  /** @nullable */
+  date: string | null;
+  /** @nullable */
+  court: string | null;
+  confidence: number;
+}
+
 export interface DocumentAnalysis {
   /** @nullable */
   caseNumber: string | null;
@@ -79,6 +145,10 @@ export interface DocumentAnalysis {
   /** @nullable */
   courtNameConfidence: number | null;
   /** @nullable */
+  jurisdiction: string | null;
+  /** @nullable */
+  jurisdictionConfidence: number | null;
+  /** @nullable */
   judgmentDate: string | null;
   /** @nullable */
   judgmentDateConfidence: number | null;
@@ -89,6 +159,14 @@ export interface DocumentAnalysis {
   parties: ExtractedParty[];
   directives: ExtractedDirective[];
   highlights: HighlightedSection[];
+  legalCitations: LegalCitation[];
+  keyDates: KeyDate[];
+  monetaryAwards: MonetaryAward[];
+  legalIssues: LegalIssue[];
+  proceduralHistory: ProceduralStep[];
+  outcome: CaseOutcome | null;
+  appealInfo: AppealInfo | null;
+  actionItems: ActionItem[];
   /** @nullable */
   summary: string | null;
   /** @nullable */

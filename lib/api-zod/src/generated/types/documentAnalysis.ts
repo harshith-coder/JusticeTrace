@@ -5,9 +5,17 @@
  * Legal Document Understanding & Extraction Engine API
  * OpenAPI spec version: 0.1.0
  */
+import type { ActionItem } from "./actionItem";
+import type { AppealInfo } from "./appealInfo";
+import type { CaseOutcome } from "./caseOutcome";
 import type { ExtractedDirective } from "./extractedDirective";
 import type { ExtractedParty } from "./extractedParty";
 import type { HighlightedSection } from "./highlightedSection";
+import type { KeyDate } from "./keyDate";
+import type { LegalCitation } from "./legalCitation";
+import type { LegalIssue } from "./legalIssue";
+import type { MonetaryAward } from "./monetaryAward";
+import type { ProceduralStep } from "./proceduralStep";
 
 export interface DocumentAnalysis {
   /** @nullable */
@@ -23,6 +31,10 @@ export interface DocumentAnalysis {
   /** @nullable */
   courtNameConfidence: number | null;
   /** @nullable */
+  jurisdiction: string | null;
+  /** @nullable */
+  jurisdictionConfidence: number | null;
+  /** @nullable */
   judgmentDate: string | null;
   /** @nullable */
   judgmentDateConfidence: number | null;
@@ -33,6 +45,14 @@ export interface DocumentAnalysis {
   parties: ExtractedParty[];
   directives: ExtractedDirective[];
   highlights: HighlightedSection[];
+  legalCitations: LegalCitation[];
+  keyDates: KeyDate[];
+  monetaryAwards: MonetaryAward[];
+  legalIssues: LegalIssue[];
+  proceduralHistory: ProceduralStep[];
+  outcome: CaseOutcome | null;
+  appealInfo: AppealInfo | null;
+  actionItems: ActionItem[];
   /** @nullable */
   summary: string | null;
   /** @nullable */

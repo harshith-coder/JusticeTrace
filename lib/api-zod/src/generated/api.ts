@@ -68,6 +68,8 @@ export const GetDocumentResponse = zod.object({
       caseNameConfidence: zod.number().nullable(),
       courtName: zod.string().nullable(),
       courtNameConfidence: zod.number().nullable(),
+      jurisdiction: zod.string().nullable(),
+      jurisdictionConfidence: zod.number().nullable(),
       judgmentDate: zod.string().nullable(),
       judgmentDateConfidence: zod.number().nullable(),
       judge: zod.string().nullable(),
@@ -93,6 +95,72 @@ export const GetDocumentResponse = zod.object({
           text: zod.string(),
           confidence: zod.number(),
           category: zod.string(),
+        }),
+      ),
+      legalCitations: zod.array(
+        zod.object({
+          text: zod.string(),
+          type: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      keyDates: zod.array(
+        zod.object({
+          event: zod.string(),
+          date: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      monetaryAwards: zod.array(
+        zod.object({
+          type: zod.string(),
+          amount: zod.string(),
+          recipient: zod.string(),
+          payer: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      legalIssues: zod.array(
+        zod.object({
+          issue: zod.string(),
+          resolution: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      proceduralHistory: zod.array(
+        zod.object({
+          event: zod.string(),
+          date: zod.string().nullable(),
+          court: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+      ),
+      outcome: zod.union([
+        zod.object({
+          prevailingParty: zod.string().nullable(),
+          outcomeType: zod.string().nullable(),
+          summary: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+        zod.null(),
+      ]),
+      appealInfo: zod.union([
+        zod.object({
+          canAppeal: zod.boolean().nullable(),
+          deadline: zod.string().nullable(),
+          court: zod.string().nullable(),
+          notes: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+        zod.null(),
+      ]),
+      actionItems: zod.array(
+        zod.object({
+          action: zod.string(),
+          responsible: zod.string(),
+          deadline: zod.string().nullable(),
+          priority: zod.string(),
+          confidence: zod.number(),
         }),
       ),
       summary: zod.string().nullable(),
@@ -132,6 +200,8 @@ export const AnalyzeDocumentResponse = zod.object({
       caseNameConfidence: zod.number().nullable(),
       courtName: zod.string().nullable(),
       courtNameConfidence: zod.number().nullable(),
+      jurisdiction: zod.string().nullable(),
+      jurisdictionConfidence: zod.number().nullable(),
       judgmentDate: zod.string().nullable(),
       judgmentDateConfidence: zod.number().nullable(),
       judge: zod.string().nullable(),
@@ -157,6 +227,72 @@ export const AnalyzeDocumentResponse = zod.object({
           text: zod.string(),
           confidence: zod.number(),
           category: zod.string(),
+        }),
+      ),
+      legalCitations: zod.array(
+        zod.object({
+          text: zod.string(),
+          type: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      keyDates: zod.array(
+        zod.object({
+          event: zod.string(),
+          date: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      monetaryAwards: zod.array(
+        zod.object({
+          type: zod.string(),
+          amount: zod.string(),
+          recipient: zod.string(),
+          payer: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      legalIssues: zod.array(
+        zod.object({
+          issue: zod.string(),
+          resolution: zod.string(),
+          confidence: zod.number(),
+        }),
+      ),
+      proceduralHistory: zod.array(
+        zod.object({
+          event: zod.string(),
+          date: zod.string().nullable(),
+          court: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+      ),
+      outcome: zod.union([
+        zod.object({
+          prevailingParty: zod.string().nullable(),
+          outcomeType: zod.string().nullable(),
+          summary: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+        zod.null(),
+      ]),
+      appealInfo: zod.union([
+        zod.object({
+          canAppeal: zod.boolean().nullable(),
+          deadline: zod.string().nullable(),
+          court: zod.string().nullable(),
+          notes: zod.string().nullable(),
+          confidence: zod.number(),
+        }),
+        zod.null(),
+      ]),
+      actionItems: zod.array(
+        zod.object({
+          action: zod.string(),
+          responsible: zod.string(),
+          deadline: zod.string().nullable(),
+          priority: zod.string(),
+          confidence: zod.number(),
         }),
       ),
       summary: zod.string().nullable(),
