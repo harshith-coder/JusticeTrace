@@ -149,7 +149,10 @@ export default function Dashboard() {
         invalidate();
         queryClient.invalidateQueries({ queryKey: getGetDocumentQueryKey(id) });
       },
-      onError: () => toast({ title: "Analysis failed", variant: "destructive" }),
+      onError: (err: unknown) => {
+        const msg = (err as { data?: { error?: string } })?.data?.error ?? "Analysis failed. Please try again.";
+        toast({ title: "Analysis failed", description: msg, variant: "destructive" });
+      },
     });
   }, [analyzeDoc, invalidate, queryClient, toast]);
 

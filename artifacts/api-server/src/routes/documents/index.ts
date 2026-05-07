@@ -34,7 +34,9 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
     rawText = extracted.text;
     pageCount = extracted.pageCount;
   } catch (err) {
-    req.log.warn({ err }, "Could not extract text from PDF, storing without text");
+    req.log.error({ err }, "Could not extract text from PDF");
+    res.status(422).json({ error: "Could not extract text from this PDF. It may be a scanned image-only document with no text layer. Please ensure the PDF contains selectable text." });
+    return;
   }
 
   const [doc] = await db.insert(documentsTable).values({

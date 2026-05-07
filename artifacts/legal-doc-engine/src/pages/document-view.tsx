@@ -88,7 +88,10 @@ export default function DocumentView() {
         queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDocumentStatsQueryKey() });
       },
-      onError: () => toast({ title: "Analysis failed", variant: "destructive" }),
+      onError: (err: unknown) => {
+        const msg = (err as { data?: { error?: string } })?.data?.error ?? "Analysis failed. Please try again.";
+        toast({ title: "Analysis failed", description: msg, variant: "destructive" });
+      },
     });
   };
 

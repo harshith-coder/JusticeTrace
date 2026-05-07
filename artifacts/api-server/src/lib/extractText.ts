@@ -3,22 +3,19 @@ import { logger } from "./logger";
 
 const _require = createRequire(import.meta.url);
 
-export async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
-  try {
-    // pdf-parse is CJS-only; require it at runtime to avoid ESM/CJS mismatch.
-    // Some versions export the function as .default, others as the module itself.
-    const pdfParseModule = _require("pdf-parse");
-    const pdfParse = (typeof pdfParseModule === "function" ? pdfParseModule : pdfParseModule.default) as (
-      buf: Buffer
-    ) => Promise<{ text: string; numpages: number }>;
+type PdfParseResult = { text: string; numpages: number };
+type PdfParseFn = (buf: Buffer, options?: Record<string, unknown>) => Promise<PdfParseResult>;
 
-    const result = await pdfParse(buffer);
-    return {
-      text: result.text,
-      pageCount: result.numpages,
-    };
-  } catch (err) {
-    logger.error({ err }, "Failed to extract text from PDF");
-    throw new Error("Failed to extract text from PDF");
-  }
+export async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
+  // pdf-parse v1 exports a function directly via module.exports
+  const pdfParse = _require("pdf-parse") as PdfParseFn;
+
+  const result = await pdfParse(buffer);
+
+  logger.info({ pageCount: result.numpages, textLength: result.text.length }, "PDF text extracted");
+
+  return {
+    text: result.text,
+    pageCount: result.numpages,
+  };
 }

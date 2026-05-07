@@ -90,8 +90,10 @@ Always respond with valid JSON in exactly this structure:
 }`;
 
 export async function extractLegalInformation(documentText: string): Promise<LegalExtractionResult> {
-  const truncatedText = documentText.length > 60000
-    ? documentText.slice(0, 60000) + "\n\n[Document truncated for analysis]"
+  // Allow up to ~300 pages worth of text (~250,000 chars). Claude's context window supports this.
+  const MAX_CHARS = 250000;
+  const truncatedText = documentText.length > MAX_CHARS
+    ? documentText.slice(0, MAX_CHARS) + "\n\n[Document truncated — remaining pages not included]"
     : documentText;
 
   logger.info({ textLength: truncatedText.length }, "Sending document to Anthropic for analysis");
