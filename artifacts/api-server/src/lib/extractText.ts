@@ -1,13 +1,17 @@
 import { createRequire } from "node:module";
 import { logger } from "./logger";
 
-const require = createRequire(import.meta.url);
+const _require = createRequire(import.meta.url);
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
   try {
-    // pdf-parse is CJS-only; require it at runtime to avoid ESM/CJS mismatch
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+    // pdf-parse is CJS-only; require it at runtime to avoid ESM/CJS mismatch.
+    // Some versions export the function as .default, others as the module itself.
+    const pdfParseModule = _require("pdf-parse");
+    const pdfParse = (typeof pdfParseModule === "function" ? pdfParseModule : pdfParseModule.default) as (
+      buf: Buffer
+    ) => Promise<{ text: string; numpages: number }>;
+
     const result = await pdfParse(buffer);
     return {
       text: result.text,

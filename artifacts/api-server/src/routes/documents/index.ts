@@ -119,7 +119,7 @@ router.post("/documents/:id/analyze", async (req, res): Promise<void> => {
   }
 
   if (!doc.rawText) {
-    res.status(400).json({ error: "Document has no extractable text for analysis" });
+    res.status(400).json({ error: "No text could be extracted from this PDF. This may be a scanned document with no text layer, or the file may be corrupted. Please try re-uploading the document." });
     return;
   }
 
