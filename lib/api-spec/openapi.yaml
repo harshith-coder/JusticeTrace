@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Legal Document Understanding & Extraction Engine API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: documents
+    description: Legal document operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,111 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List all uploaded documents
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+
+  /documents/stats:
+    get:
+      operationId: getDocumentStats
+      tags: [documents]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Document statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentStats"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get document with full analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document with analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentWithAnalysis"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /documents/{id}/analyze:
+    post:
+      operationId: analyzeDocument
+      tags: [documents]
+      summary: Trigger AI analysis on a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analysis started or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentWithAnalysis"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +141,200 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        pageCount:
+          type: ["integer", "null"]
+        uploadedAt:
+          type: string
+          format: date-time
+        analyzedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - fileName
+        - fileSize
+        - status
+        - pageCount
+        - uploadedAt
+        - analyzedAt
+
+    DocumentStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        processing:
+          type: integer
+        completed:
+          type: integer
+        failed:
+          type: integer
+        avgConfidence:
+          type: ["number", "null"]
+      required:
+        - total
+        - pending
+        - processing
+        - completed
+        - failed
+        - avgConfidence
+
+    ExtractedParty:
+      type: object
+      properties:
+        role:
+          type: string
+        name:
+          type: string
+        confidence:
+          type: number
+      required:
+        - role
+        - name
+        - confidence
+
+    ExtractedDirective:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        sourceText:
+          type: string
+        confidence:
+          type: number
+      required:
+        - type
+        - description
+        - sourceText
+        - confidence
+
+    HighlightedSection:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+        confidence:
+          type: number
+        category:
+          type: string
+      required:
+        - label
+        - text
+        - confidence
+        - category
+
+    DocumentAnalysis:
+      type: object
+      properties:
+        caseNumber:
+          type: ["string", "null"]
+        caseNumberConfidence:
+          type: ["number", "null"]
+        caseName:
+          type: ["string", "null"]
+        caseNameConfidence:
+          type: ["number", "null"]
+        courtName:
+          type: ["string", "null"]
+        courtNameConfidence:
+          type: ["number", "null"]
+        judgmentDate:
+          type: ["string", "null"]
+        judgmentDateConfidence:
+          type: ["number", "null"]
+        judge:
+          type: ["string", "null"]
+        judgeConfidence:
+          type: ["number", "null"]
+        parties:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractedParty"
+        directives:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractedDirective"
+        highlights:
+          type: array
+          items:
+            $ref: "#/components/schemas/HighlightedSection"
+        summary:
+          type: ["string", "null"]
+        overallConfidence:
+          type: ["number", "null"]
+      required:
+        - caseNumber
+        - caseNumberConfidence
+        - caseName
+        - caseNameConfidence
+        - courtName
+        - courtNameConfidence
+        - judgmentDate
+        - judgmentDateConfidence
+        - judge
+        - judgeConfidence
+        - parties
+        - directives
+        - highlights
+        - summary
+        - overallConfidence
+
+    DocumentWithAnalysis:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        pageCount:
+          type: ["integer", "null"]
+        uploadedAt:
+          type: string
+          format: date-time
+        analyzedAt:
+          type: ["string", "null"]
+          format: date-time
+        analysis:
+          oneOf:
+            - $ref: "#/components/schemas/DocumentAnalysis"
+            - type: "null"
+      required:
+        - id
+        - fileName
+        - fileSize
+        - status
+        - pageCount
+        - uploadedAt
+        - analyzedAt
+        - analysis
