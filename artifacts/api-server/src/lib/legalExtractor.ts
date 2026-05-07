@@ -105,11 +105,22 @@ export interface LegalExtractionResult {
   overallConfidence: number | null;
 }
 
-const SYSTEM_PROMPT = `You are a specialized legal document analysis AI. Extract comprehensive structured information from court judgment documents with maximum detail and precision.
+const SYSTEM_PROMPT = `You are a specialized legal document analysis AI. Extract structured information from court judgment documents with precision.
 
-Extract ALL of the following categories. Provide a confidence score (0.0–1.0) for every field.
+IMPORTANT: Your entire response must be valid, complete JSON. Do not truncate arrays mid-way. If you must limit output to stay within token limits, include fewer items per array but always close all brackets and braces properly.
 
-Always respond with valid JSON matching this exact structure:
+Array limits (strictly enforced to keep response size manageable):
+- parties: max 12 most important
+- directives: max 8 most important
+- highlights: max 6 most representative
+- legalCitations: max 12 most significant
+- keyDates: max 10 most important
+- monetaryAwards: max 8
+- legalIssues: max 6 most important
+- proceduralHistory: max 8 steps
+- actionItems: max 8 most important
+
+Always respond with valid, complete JSON matching this exact structure:
 {
   "caseNumber": "string or null",
   "caseNumberConfidence": 0.0-1.0,
@@ -131,16 +142,16 @@ Always respond with valid JSON matching this exact structure:
   "directives": [
     {
       "type": "ORDER|INJUNCTION|AWARD|DISMISSAL|REMAND|DECLARATION|STAY|WRIT|SENTENCE|other",
-      "description": "clear description of the directive",
-      "sourceText": "verbatim excerpt from the document (max 300 chars)",
+      "description": "clear description of the directive (max 120 chars)",
+      "sourceText": "verbatim excerpt (max 150 chars)",
       "confidence": 0.0-1.0
     }
   ],
 
   "highlights": [
     {
-      "label": "short label",
-      "text": "relevant excerpt from the document",
+      "label": "short label (max 60 chars)",
+      "text": "relevant excerpt (max 200 chars)",
       "confidence": 0.0-1.0,
       "category": "holding|reasoning|procedural_history|facts|legal_standard|remedy"
     }
@@ -148,7 +159,7 @@ Always respond with valid JSON matching this exact structure:
 
   "legalCitations": [
     {
-      "text": "full citation text e.g. Brown v. Board of Education, 347 U.S. 483 (1954)",
+      "text": "citation e.g. Brown v. Board of Education, 347 U.S. 483 (1954)",
       "type": "case_law|statute|regulation|constitutional|treaty|other",
       "confidence": 0.0-1.0
     }
@@ -156,8 +167,8 @@ Always respond with valid JSON matching this exact structure:
 
   "keyDates": [
     {
-      "event": "description of the event e.g. 'Complaint filed', 'Hearing held', 'Judgment issued', 'Appeal deadline'",
-      "date": "ISO date string or descriptive string like '30 days from judgment'",
+      "event": "event description (max 80 chars)",
+      "date": "ISO date or descriptive string",
       "confidence": 0.0-1.0
     }
   ],
@@ -165,8 +176,8 @@ Always respond with valid JSON matching this exact structure:
   "monetaryAwards": [
     {
       "type": "damages|costs|attorney_fees|fine|restitution|compensation|other",
-      "amount": "exact amount with currency e.g. '$150,000' or '€50,000'",
-      "recipient": "party receiving the payment",
+      "amount": "exact amount with currency",
+      "recipient": "party receiving payment",
       "payer": "party ordered to pay",
       "confidence": 0.0-1.0
     }
@@ -174,15 +185,15 @@ Always respond with valid JSON matching this exact structure:
 
   "legalIssues": [
     {
-      "issue": "the legal question or issue before the court",
-      "resolution": "how the court resolved it",
+      "issue": "legal question (max 120 chars)",
+      "resolution": "how court resolved it (max 150 chars)",
       "confidence": 0.0-1.0
     }
   ],
 
   "proceduralHistory": [
     {
-      "event": "what happened procedurally e.g. 'Case filed in District Court', 'Appeal to Circuit Court', 'Remanded for retrial'",
+      "event": "procedural event (max 100 chars)",
       "date": "ISO date or descriptive string or null",
       "court": "court name or null",
       "confidence": 0.0-1.0
@@ -190,7 +201,7 @@ Always respond with valid JSON matching this exact structure:
   ],
 
   "outcome": {
-    "prevailingParty": "name of the winning party or 'Mixed' or null",
+    "prevailingParty": "name of winning party or 'Mixed' or null",
     "outcomeType": "Judgment for Plaintiff|Judgment for Defendant|Dismissed|Remanded|Settled|Affirmed|Reversed|Mixed|other",
     "summary": "1-2 sentence plain-English outcome summary",
     "confidence": 0.0-1.0
@@ -199,16 +210,16 @@ Always respond with valid JSON matching this exact structure:
   "appealInfo": {
     "canAppeal": true|false|null,
     "deadline": "deadline string or null",
-    "court": "appellate court to appeal to or null",
-    "notes": "any relevant notes about appeal rights or null",
+    "court": "appellate court or null",
+    "notes": "brief notes about appeal rights or null",
     "confidence": 0.0-1.0
   },
 
   "actionItems": [
     {
-      "action": "specific action that must be taken",
-      "responsible": "which party or entity must take the action",
-      "deadline": "deadline string or null",
+      "action": "specific action required (max 120 chars)",
+      "responsible": "party or entity responsible",
+      "deadline": "deadline or null",
       "priority": "high|medium|low",
       "confidence": 0.0-1.0
     }
@@ -218,7 +229,50 @@ Always respond with valid JSON matching this exact structure:
   "overallConfidence": 0.0-1.0
 }
 
-Be thorough — extract as many citations, dates, issues, and action items as you can find. If information is genuinely absent from the document, use empty arrays or null values. Never fabricate information.`;
+If information is absent from the document, use empty arrays or null. Never fabricate information. Prioritize completeness of JSON structure over exhaustiveness of arrays.`;
+
+/**
+ * Attempts to repair a truncated JSON string by trimming the last incomplete
+ * value and closing all unclosed arrays and objects.
+ */
+function repairTruncatedJson(raw: string): string {
+  // Walk back from the end to find the last clean comma or opening bracket
+  // so we don't include a partially-written value.
+  let s = raw;
+
+  // Remove trailing partial token (anything after the last complete value)
+  // A complete value ends with: }, ], ", a digit, true, false, null
+  const lastClean = s.search(/[}\]"0-9](,|\s*$)/);
+  if (lastClean !== -1) {
+    // Trim everything after the last clearly-closed value/element
+    // Find the last position that ends a complete JSON value
+    const goodEnd = s.lastIndexOf(",");
+    if (goodEnd > 0) {
+      s = s.slice(0, goodEnd);
+    }
+  }
+
+  // Count unclosed brackets and braces
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\" && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") stack.pop();
+  }
+
+  // Close all unclosed structures in reverse order
+  for (let i = stack.length - 1; i >= 0; i--) {
+    s += stack[i] === "{" ? "}" : "]";
+  }
+
+  return s;
+}
 
 export async function extractLegalInformation(documentText: string): Promise<LegalExtractionResult> {
   const MAX_CHARS = 250000;
@@ -246,12 +300,35 @@ export async function extractLegalInformation(documentText: string): Promise<Leg
   }
 
   const jsonText = rawContent.text.trim();
-  const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+  const jsonMatch = jsonText.match(/\{[\s\S]*/);
   if (!jsonMatch) {
     throw new Error("No JSON found in Anthropic response");
   }
 
-  const result = JSON.parse(jsonMatch[0]) as LegalExtractionResult;
+  let rawJson = jsonMatch[0];
+
+  // Attempt 1: parse as-is
+  let result: LegalExtractionResult;
+  try {
+    result = JSON.parse(rawJson) as LegalExtractionResult;
+  } catch {
+    // Attempt 2: repair truncated JSON by closing all unclosed brackets/braces
+    logger.warn({ rawLength: rawJson.length, stopReason: message.stop_reason }, "JSON truncated — attempting repair");
+    rawJson = repairTruncatedJson(rawJson);
+    result = JSON.parse(rawJson) as LegalExtractionResult;
+  }
+
+  // Normalise arrays so the UI never receives undefined
+  result.parties ??= [];
+  result.directives ??= [];
+  result.highlights ??= [];
+  result.legalCitations ??= [];
+  result.keyDates ??= [];
+  result.monetaryAwards ??= [];
+  result.legalIssues ??= [];
+  result.proceduralHistory ??= [];
+  result.actionItems ??= [];
+
   logger.info({ overallConfidence: result.overallConfidence }, "Legal extraction complete");
 
   return result;
